@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AegisAI - Cyber Threat Intelligence</title>
+    <style>
+        body {
+            background-color: #0B1C2D;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 40px;
+        }
+
+        textarea {
+            width: 60%;
+            height: 120px;
+            padding: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            background-color: #00bcd4;
+            border: none;
+            cursor: pointer;
+            color: black;
+            font-weight: bold;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #122B40;
+            display: none;
+            width: 60%;
+        }
+
+        input[type="file"] {
+            margin-top: 15px;
+        }
+
+        .risk-container {
+            background:#333;
+            width:100%;
+            height:20px;
+            margin:10px 0;
+        }
+
+        #riskBar {
+            height:100%;
+            width:0%;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>AegisAI</h1>
+<p>Behavioral Threat Intelligence System</p>
+
+<button onclick="toggleMode()" id="modeButton">Switch to Institutional Mode</button>
+
+<br><br>
+
+<textarea id="inputText" placeholder="Paste suspicious message here..."></textarea><br>
+<button onclick="analyze()">Analyze Text</button>
+
+<br><br>
+<input type="file" id="audioFile">
+<button onclick="analyzeAudio()">Analyze Audio</button>
+
+<div class="result" id="resultBox">
+
+    <h3>Risk Score: <span id="risk"></span></h3>
+
+    <div class="risk-container">
+        <div id="riskBar"></div>
+    </div>
+
+    <h3>Threat Level: <span id="level"></span></h3>
+    <h4>Threat Category: <span id="category"></span></h4>
+    <h4>Emotional Coercion Index: <span id="eci"></span></h4>
+    <h4>Deepfake Suspicion: <span id="deepfake"></span></h4>
+
+    <h4>Transcript:</h4>
+    <p id="transcript"></p>
+
+    <h4>Explanation:</h4>
+    <ul id="explanation"></ul>
+
+</div>
+
+<script>
+
+let institutionalMode = false;
+
+async function analyze() {
+
+    if (institutionalMode) return;
+
+    const text = document.getElementById("inputText").value;
+
+    const response = await fetch("/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text })
+    });
+
+    const data = await response.json();
+    displayResults(data);
+}
+
+async function analyzeAudio() {
+
+    if (institutionalMode) return;
+
+    const fileInput = document.getElementById("audioFile");
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert("Please upload an audio file.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/analyze-audio", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await response.json();
+    displayResults(data);
+}
+
+function displayResults(data) {
+
+    document.getElementById("resultBox").style.display = "inline-block";
+
+    document.getElementById("risk").innerText = data.risk_score;
+    document.getElementById("level").innerText = data.threat_level;
+    document.getElementById("category").innerText = data.threat_category || "N/A";
+    document.getElementById("eci").innerText = data.emotional_coercion_index;
+    document.getElementById("deepfake").innerText = data.deepfake_suspicion || "N/A";
+    document.getElementById("transcript").innerText = data.transcript || "N/A";
+
+    const riskBar = document.getElementById("riskBar");
+    riskBar.style.width = data.risk_score + "%";
+
+    if (data.risk_score > 70) {
+        riskBar.style.backgroundColor = "red";
+    } else if (data.risk_score > 30) {
+        riskBar.style.backgroundColor = "orange";
+    } else {
+        riskBar.style.backgroundColor = "green";
+    }
+
+    const explanationList = document.getElementById("explanation");
+    explanationList.innerHTML = "";
+
+    if (data.explanation && data.explanation.length > 0) {
+        data.explanation.forEach(item => {
+            const li = document.createElement("li");
+            li.innerText = item;
+            explanationList.appendChild(li);
+        });
+    } else {
+        explanationList.innerHTML = "<li>No significant manipulation detected.</li>";
+    }
+}
+
+function toggleMode() {
+
+    institutionalMode = !institutionalMode;
+
+    const button = document.getElementById("modeButton");
+    const riskBar = document.getElementById("riskBar");
+    const resultBox = document.getElementById("resultBox");
+
+    if (institutionalMode) {
+
+        button.innerText = "Switch to Citizen Mode";
+        resultBox.style.display = "inline-block";
+
+        document.getElementById("risk").innerText = "System Analytics";
+        document.getElementById("level").innerText = "Batch Monitoring Active";
+        document.getElementById("category").innerText = "Top Threat: Authority-Based Financial Fraud";
+        document.getElementById("eci").innerText = "Aggregate Score: 62";
+        document.getElementById("deepfake").innerText = "Monitoring Enabled";
+        document.getElementById("transcript").innerText = "Institutional Monitoring Mode";
+
+        riskBar.style.width = "62%";
+        riskBar.style.backgroundColor = "orange";
+
+        document.getElementById("explanation").innerHTML = `
+            <li>Total Scanned: 125</li>
+            <li>High Risk: 34%</li>
+            <li>Medium Risk: 41%</li>
+            <li>Low Risk: 25%</li>
+        `;
+
+    } else {
+
+        button.innerText = "Switch to Institutional Mode";
+        resultBox.style.display = "none";
+    }
+}
+
+</script>
+
+</body>
+</html>
